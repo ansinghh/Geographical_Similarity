@@ -1,6 +1,6 @@
-# Coordinate Matching and Haversine Distance Finder
+# Geographic Coordinate Matching and Haversine Distance Finder
 
-A Python tool to find the closest geographical points between two sets of coordinates using the Haversine formula and KD-Tree for efficiency.
+A Python script to find the closest geographical points between two sets of coordinates using the Haversine formula and KD-Tree for efficiency.
 
 ---
 
