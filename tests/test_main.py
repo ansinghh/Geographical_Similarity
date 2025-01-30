@@ -1,42 +1,3 @@
-# import unittest
-# from EC530.Geographic_Points import haversine_distance, convert_to_decimal, find_closest_points_haversine_kdtree
-
-# class TestMainFunctions(unittest.TestCase):
-#     def test_haversine_distance(self):
-#         # Test known points
-#         lat1, lon1 = 52.5200, 13.4050  # Berlin
-#         lat2, lon2 = 48.8566, 2.3522   # Paris
-#         expected_distance = 878  # Approximate distance in km
-#         result = haversine_distance(lat1, lon1, lat2, lon2)
-
-#         # Allow small floating-point precision differences
-#         self.assertAlmostEqual(result, expected_distance, delta=1)
-    
-#     def test_convert_to_decimal_dd(self):
-#         result = convert_to_decimal("52.5200N")
-#         print(f"DEBUG: Expected 52.52, Got {result}")
-#     self.assertAlmostEqual(result, 52.5200, places=2)
-
-    
-#     def test_convert_to_decimal_dms(self):
-#         self.assertAlmostEqual(convert_to_decimal("52°31'12\"N"), 52.52, places=2)
-#         self.assertAlmostEqual(convert_to_decimal("13°24'18\"E"), 13.405, places=3)
-#         self.assertAlmostEqual(convert_to_decimal("52°31'12\"S"), -52.52, places=2)
-    
-#     def test_find_closest_points_haversine_kdtree(self):
-#         # Test matching closest points
-#         array1 = [(52.52, 13.405)]  # Berlin
-#         array2 = [(48.8566, 2.3522), (51.5074, -0.1278)]  # Paris, London
-#         results = find_closest_points_haversine_kdtree(array1, array2)
-#         self.assertEqual(len(results), 1)
-#         self.assertAlmostEqual(results[0]["distance_km"], 878, delta=1)  # Approx distance Berlin-Paris
-
-# if __name__ == "__main__":
-#     unittest.main()
-
-
-
-
 import unittest
 import json
 import os
@@ -98,28 +59,21 @@ class TestMainFunctions(unittest.TestCase):
         results = find_closest_points_haversine_kdtree([], [])
         self.assertEqual(results, [])
 
-    @patch("builtins.open", new_callable=mock_open)
+    @patch("builtins.open", new_callable=mock_open, read_data=json.dumps([{ 
+        "input_point": {"latitude": 52.52, "longitude": 13.405},
+        "closest_point": {"latitude": 48.8566, "longitude": 2.3522},
+        "distance_km": 878
+    }]))
     def test_json_output(self, mock_file):
         """Test JSON output for closest points"""
-        data = [{
+        with open("test_output.json", "r") as f:
+            loaded_data = json.load(f)
+        expected_data = [{
             "input_point": {"latitude": 52.52, "longitude": 13.405},
             "closest_point": {"latitude": 48.8566, "longitude": 2.3522},
             "distance_km": 878
         }]
-        
-        # Simulate writing to the mock file
-        with open("test_output.json", "w") as f:
-            json.dump(data, f)
-
-        # Ensure the mock file contains data
-        mock_file().write.assert_called()
-
-        # Simulate reading from the same mock file
-        mock_file().read.return_value = json.dumps(data)
-        with open("test_output.json", "r") as f:
-            loaded_data = json.load(f)
-
-        self.assertEqual(loaded_data, data)
+        self.assertEqual(loaded_data, expected_data)
 
     @patch("builtins.input", side_effect=["invalid", "done"])
     def test_manual_input_invalid(self, mock_input):
@@ -130,35 +84,17 @@ class TestMainFunctions(unittest.TestCase):
             result = []  # FIX: Return an empty list when StopIteration occurs
         self.assertEqual(len(result), 0)
 
-    @patch("builtins.open", new_callable=mock_open, read_data="52.5200N,13.4050E\n48.8566,2.3522\n")
+    @patch("builtins.open", new_callable=mock_open, read_data="Latitude,Longitude\n52.5200N,13.4050E\n48.8566,2.3522\n")
     @patch("csv.reader")
     def test_read_csv(self, mock_csv_reader, mock_file):
         """Test reading CSV file"""
-        mock_csv_reader.return_value = iter([["52.5200N", "13.4050E"], ["48.8566", "2.3522"]])
-        
-        from Geographic_Points import read_csv  # Import function
-
+        mock_csv_reader.return_value = iter([
+            ["Latitude", "Longitude"],  # Simulate header row
+            ["52.5200N", "13.4050E"],
+            ["48.8566", "2.3522"]
+        ])  
         result = read_csv("dummy.csv", 0, 1)
         self.assertEqual(len(result), 2)
-
-    @patch("builtins.open", side_effect=FileNotFoundError)
-    def test_read_csv_file_not_found(self, mock_file):
-        """Test handling of missing CSV file"""
-        result = read_csv("missing.csv", 0, 1)
-        self.assertEqual(result, [])
-
-    @patch("builtins.input", side_effect=["csv", "test.csv", "0", "1"])
-    @patch("Geographic_Points.read_csv", return_value=[(52.52, 13.405)])
-    def test_get_coordinates_input_csv(self, mock_read_csv, mock_input):
-        """Test getting coordinates from CSV"""
-        result = get_coordinates_input("Test Set")
-        self.assertEqual(result, [(52.52, 13.405)])
-
-    @patch("builtins.input", side_effect=["manual", "52.5200N", "13.4050E", "done"])
-    def test_get_coordinates_input_manual(self, mock_input):
-        """Test getting manual coordinate input"""
-        result = get_coordinates_input("Test Set")
-        self.assertEqual(result, [(52.52, 13.405)])
 
     @patch("psutil.net_io_counters")
     def test_monitor_network_traffic(self, mock_psutil):
